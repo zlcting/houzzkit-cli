@@ -12,6 +12,8 @@ jobs:
   build:
     # 运行在最新的Ubuntu服务器上
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 显式授予创建Release的权限
     # 多平台编译矩阵：定义需要编译的OS和架构
     strategy:
       fail-fast: false  # 某个平台编译失败不影响其他平台
@@ -71,12 +73,11 @@ jobs:
       - name: Compress binary
         run: |
           BINARY_NAME="houzzkit_tool_${{ matrix.os }}_${{ matrix.arch }}${{ matrix.suffix }}"
-          # Linux/macOS用tar.gz，Windows用zip
-          if [[ "${{ matrix.os }}" == "windows" ]]; then
-            zip ${BINARY_NAME}.zip $BINARY_NAME
-          else
-            tar -czf ${BINARY_NAME}.tar.gz $BINARY_NAME
-          fi
+          # 【已修正编译路径：替换./...为main包路径】
+          go build -ldflags="-s -w" -o $BINARY_NAME ./
+          ls -la $BINARY_NAME
+          # 压缩（只生成tar.gz，去掉zip）
+          tar -czf ${BINARY_NAME}.tar.gz $BINARY_NAME
 
       # 步骤5：自动创建Release并上传编译产物
       - name: Create Release & Upload Assets
@@ -92,7 +93,6 @@ jobs:
             - Linux arm64
             - macOS Intel (amd64)
             - macOS Apple Silicon (arm64)
-            - Windows x86_64 (amd64)
           # 是否为草稿/预发布
           draft: false
           prerelease: false
