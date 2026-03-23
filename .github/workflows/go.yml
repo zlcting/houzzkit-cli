@@ -1,0 +1,105 @@
+# 工作流名称
+name: Auto Build & Release Go App
+
+# 触发条件：推送以v开头的标签时触发（如v1.0.0、v2.1.1）
+on:
+  push:
+    tags:
+      - 'v*'
+
+# 定义任务
+jobs:
+  build:
+    # 运行在最新的Ubuntu服务器上
+    runs-on: ubuntu-latest
+    # 多平台编译矩阵：定义需要编译的OS和架构
+    strategy:
+      fail-fast: false  # 某个平台编译失败不影响其他平台
+      matrix:
+        # 组合：OS + 架构 + 可执行文件后缀
+        include:
+          # Linux x86_64 (amd64)
+          - os: linux
+            arch: amd64
+            suffix: ""  # Linux无后缀
+          # Linux arm64 (ARMv8)
+          - os: linux
+            arch: arm64
+            suffix: ""
+          # macOS Intel (amd64)
+          - os: darwin
+            arch: amd64
+            suffix: ""
+          # macOS M1/M2 (arm64)
+          - os: darwin
+            arch: arm64
+            suffix: ""
+          # 可选：Windows x86_64 (amd64)
+          - os: windows
+            arch: amd64
+            suffix: ".exe"
+
+    steps:
+      # 步骤1：检出代码（获取GitHub仓库的代码）
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 步骤2：设置Go环境（指定Go版本，自动下载配置）
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'  # 替换为你的Go版本（如1.21、1.20）
+          cache: true  # 缓存Go依赖，加速编译
+
+      # 步骤3：跨平台编译Go代码
+      - name: Build Go binary
+        env:
+          # 从矩阵中获取OS和架构
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          # CGO禁用（跨平台编译建议关闭，避免依赖系统库）
+          CGO_ENABLED: 0
+        run: |
+          # 定义可执行文件名称（格式：项目名_系统_架构+后缀）
+          BINARY_NAME="houzzkit_tool_${{ matrix.os }}_${{ matrix.arch }}${{ matrix.suffix }}"
+          # 编译：-ldflags="-s -w" 剥离调试信息，减小文件体积
+          go build -ldflags="-s -w" -o $BINARY_NAME ./...
+          # 验证文件是否生成（可选，调试用）
+          ls -la $BINARY_NAME
+
+      # 步骤4：压缩编译产物（可选，减小上传体积）
+      - name: Compress binary
+        run: |
+          BINARY_NAME="houzzkit_tool_${{ matrix.os }}_${{ matrix.arch }}${{ matrix.suffix }}"
+          # Linux/macOS用tar.gz，Windows用zip
+          if [[ "${{ matrix.os }}" == "windows" ]]; then
+            zip ${BINARY_NAME}.zip $BINARY_NAME
+          else
+            tar -czf ${BINARY_NAME}.tar.gz $BINARY_NAME
+          fi
+
+      # 步骤5：自动创建Release并上传编译产物
+      - name: Create Release & Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          # Release名称（和标签一致）
+          name: "Release ${{ github.ref_name }}"
+          # Release说明（可自定义）
+          body: |
+            ## 自动构建版本 ${{ github.ref_name }}
+            包含以下平台的可执行文件：
+            - Linux x86_64 (amd64)
+            - Linux arm64
+            - macOS Intel (amd64)
+            - macOS Apple Silicon (arm64)
+            - Windows x86_64 (amd64)
+          # 是否为草稿/预发布
+          draft: false
+          prerelease: false
+          # 上传的产物（匹配所有压缩包）
+          files: |
+            houzzkit_tool_*.tar.gz
+            houzzkit_tool_*.zip
+        env:
+          # GitHub内置Token，无需手动配置（自动有上传Release权限）
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
