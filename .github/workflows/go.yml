@@ -63,7 +63,7 @@ jobs:
           # 定义可执行文件名称（格式：项目名_系统_架构+后缀）
           BINARY_NAME="houzzkit_tool_${{ matrix.os }}_${{ matrix.arch }}${{ matrix.suffix }}"
           # 编译：-ldflags="-s -w" 剥离调试信息，减小文件体积
-          go build -ldflags="-s -w" -o $BINARY_NAME ./...
+          go build -ldflags="-s -w" -o $BINARY_NAME ./
           # 验证文件是否生成（可选，调试用）
           ls -la $BINARY_NAME
 
