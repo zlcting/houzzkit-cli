@@ -11,11 +11,11 @@ import (
 var cleanlogsCmd = &cobra.Command{
 	Use:   "cleanlogs",
 	Short: "Clear specific log files",
-	Long:  `Truncate the contents of /var/log/houzzkit.log and /var/hass/config/home-assistant.log to clear their logs.`,
+	Long:  `Truncate the contents of /var/log/houzzkit.log and /var/log/homeassistant.log to clear their logs.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		logFiles := []string{
 			"/var/log/houzzkit.log",
-			"/var/hass/config/home-assistant.log",
+			"/var/log/homeassistant.log",
 		}
 
 		for _, file := range logFiles {

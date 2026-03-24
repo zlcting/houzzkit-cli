@@ -1,7 +1,7 @@
 package main
 
 import (
-	"houzzkit_tool/cmd"
+	"houzzkit-cli/cmd"
 )
 
 func main() {

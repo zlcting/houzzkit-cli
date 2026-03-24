@@ -1,4 +1,4 @@
-module houzzkit_tool
+module houzzkit-cli
 
 go 1.21
 
