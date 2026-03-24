@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -224,8 +225,84 @@ var haRunActionCmd = &cobra.Command{
 	},
 }
 
+var haCreateAutomationCmd = &cobra.Command{
+	Use:   "create-automation <trigger_entity_id> <target_entity_id> <action_order> <alias>",
+	Short: "Create automation config in HA with highways simplified fields",
+	Args:  cobra.ExactArgs(4),
+	Run: func(cmd *cobra.Command, args []string) {
+		haURL, haToken, err := loadHAConfig()
+		if err != nil {
+			fmt.Printf("%v\n", err)
+			os.Exit(1)
+		}
+
+		triggerEntityID := args[0]
+		targetEntityID := args[1]
+		actionOrder := args[2]
+		alias := args[3]
+
+		payload := map[string]any{
+			"description": "",
+			"mode":        "single",
+			"triggers": []any{
+				map[string]any{
+					"trigger":   "state",
+					"entity_id": []string{triggerEntityID},
+				},
+			},
+			"conditions": []any{},
+			"actions": []any{
+				map[string]any{
+					"action":   "text.set_value",
+					"metadata": map[string]any{},
+					"data": map[string]any{
+						"value": actionOrder,
+					},
+					"target": map[string]any{
+						"entity_id": targetEntityID,
+					},
+				},
+			},
+			"alias": alias,
+		}
+
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			fmt.Printf("json marshal failed: %v\n", err)
+			os.Exit(1)
+		}
+
+		timestamp := fmt.Sprintf("%d", time.Now().Unix())
+		apiURL := strings.TrimRight(haURL, "/") + "/api/config/automation/config/" + timestamp
+
+		req, err := http.NewRequest(http.MethodPost, apiURL, strings.NewReader(string(jsonData)))
+		if err != nil {
+			fmt.Printf("create request failed: %v\n", err)
+			os.Exit(1)
+		}
+		req.Header.Set("Authorization", "Bearer "+haToken)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			fmt.Printf("request failed: %v\n", err)
+			os.Exit(1)
+		}
+		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+			fmt.Printf("HA API returned %d: %s\n", resp.StatusCode, string(body))
+			os.Exit(1)
+		}
+
+		fmt.Printf("Created automation: %s\n", string(body))
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(haCmd)
 	haCmd.AddCommand(haAutomationCmd)
 	haCmd.AddCommand(haRunActionCmd)
+	haCmd.AddCommand(haCreateAutomationCmd)
 }
