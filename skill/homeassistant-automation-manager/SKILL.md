@@ -96,8 +96,9 @@ houzzkit-cli get-run-action-list
   标准触发条件（实体 ID + 目标状态）
   标准执行动作（确认后的实体 + 操作）
 2.执行命令创建自动化：
+
 ```bash
-houzzkit-cli create-automation --name "[自动化名称]" --trigger "[触发条件]" --action "[执行动作]"
+houzzkit-cli create-automation "[trigger_entity_id]" "[trigger_entity_status]" "[target_entity_id]" "[action_order]" "[alias]"
 ```
 3.等待命令执行成功，返回创建结果。
 
