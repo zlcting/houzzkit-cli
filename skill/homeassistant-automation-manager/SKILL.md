@@ -1,11 +1,10 @@
-# SKILL.md
 ---
 name: homeassistant-automation-manager
 description: 管理Home Assistant自动化配置，支持查询现有自动化列表、新增实体状态触发的自动化、删除指定自动化。Use when用户提及"Home Assistant自动化"、"查询HA自动化列表"、"新增Home Assistant自动化"、"删除HA自动化"、"创建HA实体触发自动化"。
 metadata:
   version: 1.0.0
   category: homeassistant
-  emoji:"🏠"
+  emoji: "🏠"
   requires: ["jq","curl"]
   tags: [智能家居, 自动化管理, homeassistant]
 ---
