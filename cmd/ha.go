@@ -226,26 +226,20 @@ var haRunActionCmd = &cobra.Command{
 }
 
 var haCreateAutomationCmd = &cobra.Command{
-	Use:   "create-automation",
+	Use:   "create-automation <trigger_entity_id> <trigger_entity_status> <target_entity_id> <action_order> <alias>",
 	Short: "Create automation config in HA with highways simplified fields",
-	Args:  cobra.NoArgs,
+	Args:  cobra.ExactArgs(5),
 	Run: func(cmd *cobra.Command, args []string) {
 		haURL, haToken, err := loadHAConfig()
 		if err != nil {
 			fmt.Printf("%v\n", err)
 			os.Exit(1)
 		}
-
-		triggerEntityID, _ := cmd.Flags().GetString("trigger-entity-id")
-		triggerState, _ := cmd.Flags().GetString("trigger-entity-status")
-		targetEntityID, _ := cmd.Flags().GetString("target-entity-id")
-		actionOrder, _ := cmd.Flags().GetString("action-order")
-		alias, _ := cmd.Flags().GetString("alias")
-
-		if triggerEntityID == "" || triggerState == "" || targetEntityID == "" || actionOrder == "" || alias == "" {
-			fmt.Println("Usage: houzzkit-cli create-automation --trigger-entity-id ... --trigger-entity-status ... --target-entity-id ... --action-order ... --alias ...")
-			os.Exit(1)
-		}
+		triggerEntityID := args[0]
+		triggerState := args[1]
+		targetEntityID := args[2]
+		actionOrder := args[3]
+		alias := args[4]
 		payload := map[string]any{
 			"description": "",
 			"mode":        "single",
@@ -311,113 +305,7 @@ var haCreateAutomationCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	haCreateAutomationCmd.Flags().String("trigger-entity-id", "", "Trigger entity ID")
-	haCreateAutomationCmd.Flags().String("trigger-entity-status", "", "Trigger entity state (e.g., on/off)")
-	haCreateAutomationCmd.Flags().String("target-entity-id", "", "Target entity ID for action")
-	haCreateAutomationCmd.Flags().String("action-order", "", "Value to set in action")
-	haCreateAutomationCmd.Flags().String("alias", "", "Automation alias")
-
-	var haGetEntityCmd = &cobra.Command{
-		Use:   "get-entity-list",
-		Short: "List entities (light, switch, climate, etc.) with available state",
-		Run: func(cmd *cobra.Command, args []string) {
-			haURL, haToken, err := loadHAConfig()
-			if err != nil {
-				fmt.Printf("%v\n", err)
-				os.Exit(1)
-			}
-
-			apiURL := strings.TrimRight(haURL, "/") + "/api/states"
-			req, err := http.NewRequest(http.MethodGet, apiURL, nil)
-			if err != nil {
-				fmt.Printf("create request failed: %v\n", err)
-				os.Exit(1)
-			}
-			req.Header.Set("Authorization", "Bearer "+haToken)
-			req.Header.Set("Content-Type", "application/json")
-
-			resp, err := http.DefaultClient.Do(req)
-			if err != nil {
-				fmt.Printf("request failed: %v\n", err)
-				os.Exit(1)
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode != http.StatusOK {
-				body, _ := io.ReadAll(resp.Body)
-				fmt.Printf("HA API returned %d: %s\n", resp.StatusCode, string(body))
-				os.Exit(1)
-			}
-
-			data, err := io.ReadAll(resp.Body)
-			if err != nil {
-				fmt.Printf("read response failed: %v\n", err)
-				os.Exit(1)
-			}
-
-			var list []map[string]any
-			if err := json.Unmarshal(data, &list); err != nil {
-				fmt.Printf("parse JSON failed: %v\n", err)
-				os.Exit(1)
-			}
-
-			// Device types to include
-			deviceTypes := map[string]bool{
-				"light": true, "switch": true, "climate": true, "cover": true,
-				"fan": true, "lock": true, "vacuum": true, "media_player": true,
-				"remote": true, "sensor": true, "binary_sensor": true,
-			}
-
-			var results []map[string]any
-			for _, item := range list {
-				entityID, _ := item["entity_id"].(string)
-				if entityID == "" {
-					continue
-				}
-
-				parts := strings.Split(entityID, ".")
-				if len(parts) < 2 {
-					continue
-				}
-				domain := parts[0]
-
-				if !deviceTypes[domain] {
-					continue
-				}
-
-				state, _ := item["state"].(string)
-				if state == "" || state == "unavailable" || state == "unknown" {
-					continue
-				}
-
-				attrs, _ := item["attributes"].(map[string]any)
-				friendlyName, _ := attrs["friendly_name"].(string)
-
-				results = append(results, map[string]any{
-					"entity_id":     entityID,
-					"domain":        domain,
-					"state":         state,
-					"friendly_name": friendlyName,
-					"attributes":    attrs,
-				})
-			}
-
-			enc, err := json.MarshalIndent(results, "", "  ")
-			if err != nil {
-				fmt.Printf("encode JSON failed: %v\n", err)
-				os.Exit(1)
-			}
-			fmt.Println(string(enc))
-		},
-	}
-
-	rootCmd.AddCommand(haCmd)
-	haCmd.AddCommand(haAutomationCmd)
-	haCmd.AddCommand(haRunActionCmd)
-	haCmd.AddCommand(haCreateAutomationCmd)
-	haCmd.AddCommand(haGetEntityCmd)
-}
+var haGetEntityCmd = &cobra.Command{
 	Use:   "get-entity-list",
 	Short: "List entities (light, switch, climate, etc.) with available state",
 	Run: func(cmd *cobra.Command, args []string) {
