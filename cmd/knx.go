@@ -40,7 +40,6 @@ var generateAutomationsCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to load HA config: %w", err)
 		}
-
 		// Fetch all states
 		req, err := http.NewRequest("GET", haURL+"/api/states", nil)
 		if err != nil {
@@ -78,7 +77,7 @@ var generateAutomationsCmd = &cobra.Command{
 		for _, e := range entities {
 			if eventTypes, ok := e.Attributes["event_types"].([]interface{}); ok {
 				for _, et := range eventTypes {
-					if etStr, ok := et.(string); ok && etStr == "Virtual Event Occurred" {
+					if etStr, ok := et.(string); ok && (etStr == "Virtual Event Occurred" || etStr == "虚拟事件发生") {
 						eventID = e.EntityID
 						break
 					}
@@ -137,8 +136,7 @@ var generateAutomationsCmd = &cobra.Command{
 			log.Fatalf("解析YAML失败: %v", err)
 		}
 		lights := config.KNX.Light
-		for i, light := range lights {
-			fmt.Printf("%2d. %-20s \n", i+1, light.Name)
+		for _, light := range lights {
 			knxLightNames = append(knxLightNames, light.Name)
 		}
 		lightEntityMap := map[string]string{} // knx name -> light entity_id
