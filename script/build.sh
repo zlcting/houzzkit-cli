@@ -1,5 +1,5 @@
 #!/bin/bash
-APP_NAME="myapp"
+APP_NAME="houzzkit-cli"
 OUTPUT_DIR="dist"
 
 mkdir -p $OUTPUT_DIR
