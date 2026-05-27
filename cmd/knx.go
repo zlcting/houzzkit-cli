@@ -155,7 +155,6 @@ var generateAutomationsCmd = &cobra.Command{
 				}
 			}
 		}
-
 		// 3. 遍历 switch 实体找到 name 匹配的 switch entity_id
 		switchMap := map[string]string{} // knx name -> switch entity list
 		for _, e := range entities {
@@ -167,7 +166,7 @@ var generateAutomationsCmd = &cobra.Command{
 				continue
 			}
 			for knxName := range lightEntityMap {
-				if fn == knxName || strings.Contains(fn, strings.ReplaceAll(knxName, "_", "")) {
+				if fn == knxName || strings.Contains(fn, knxName) {
 					switchMap[knxName] = e.EntityID
 				}
 			}
